@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 5000;
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: process.env.CORS_ORIGIN || 'https://myc-beauty-innovation-tunisia-tr.vercel.app',
   credentials: true,
   optionsSuccessStatus: 200
 };
