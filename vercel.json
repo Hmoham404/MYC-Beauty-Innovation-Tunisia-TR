@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "buildCommand": "cd client && npm install && npm run build && cd ../server && npm install",
   "builds": [
     {
       "src": "server/server.js",
@@ -23,6 +24,5 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "buildCommand": "cd client && npm install && npm run build && cd ../server && npm install"
+  }
 }
