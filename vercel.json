@@ -1,14 +1,13 @@
 {
   "version": 2,
   "buildCommand": "node build.js",
+  "env": {
+    "NODE_ENV": "production"
+  },
   "builds": [
     {
       "src": "server/server.js",
-      "use": "@vercel/node",
-      "config": {
-        "zeroConfig": true,
-        "includeFiles": "client/dist/**"
-      }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -16,8 +15,5 @@
       "src": "/(.*)",
       "dest": "server/server.js"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }

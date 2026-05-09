@@ -12,8 +12,21 @@ try {
   } catch (e) {
     console.log('⚠️  npm warnings in client (continuing...)');
   }
-  execSync('npm run build', { cwd: path.join(__dirname, 'client'), stdio: 'inherit' });
+  
+  try {
+    execSync('npm run build', { cwd: path.join(__dirname, 'client'), stdio: 'inherit' });
+  } catch (e) {
+    console.error('❌ Client build failed:', e.message);
+    throw e;
+  }
   console.log('✅ Client built successfully\n');
+
+  // Verify dist exists
+  const distPath = path.join(__dirname, 'client', 'dist');
+  if (!fs.existsSync(distPath)) {
+    throw new Error(`❌ Build directory not found: ${distPath}`);
+  }
+  console.log(`✅ Dist directory confirmed at: ${distPath}\n`);
 
   // Install server dependencies
   console.log('📦 Installing server dependencies...');

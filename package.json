@@ -1,0 +1,16 @@
+{
+  "name": "myc-document-platform",
+  "version": "1.0.0",
+  "description": "MYC Innovation Document Platform",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  }
+}
