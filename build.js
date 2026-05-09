@@ -26,7 +26,17 @@ try {
   if (!fs.existsSync(distPath)) {
     throw new Error(`❌ Build directory not found: ${distPath}`);
   }
-  console.log(`✅ Dist directory confirmed at: ${distPath}\n`);
+  
+  // Verify index.html exists
+  const indexPath = path.join(distPath, 'index.html');
+  if (!fs.existsSync(indexPath)) {
+    throw new Error(`❌ index.html not found at: ${indexPath}`);
+  }
+  
+  // List files
+  const files = fs.readdirSync(distPath);
+  console.log(`✅ Dist directory confirmed with ${files.length} files`);
+  console.log(`   Location: ${distPath}\n`);
 
   // Install server dependencies
   console.log('📦 Installing server dependencies...');
@@ -38,6 +48,7 @@ try {
   console.log('✅ Server dependencies installed\n');
 
   console.log('🎉 Build complete!');
+  console.log('   Ready to start: npm start\n');
   process.exit(0);
 } catch (error) {
   console.error('❌ Build failed:', error.message);
