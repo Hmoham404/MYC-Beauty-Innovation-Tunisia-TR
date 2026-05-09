@@ -23,7 +23,7 @@ const PreviewPanel = ({ data, onReset }) => {
     } else if (isExcel && rawUrl) {
       loadExcelDoc();
     }
-  }, [isWord, isExcel, rawUrl]);
+  }, [isWord, isExcel, rawUrl, docRef]);
 
   const loadWordDoc = async () => {
     setLoading(true);
@@ -132,8 +132,9 @@ const PreviewPanel = ({ data, onReset }) => {
 
                 {isPDF && viewUrl && (
                   <iframe 
-                    src={viewUrl} 
+                    src={viewUrl}
                     title="PDF Preview"
+                    aria-label="PDF preview"
                     className="w-full h-full border-none"
                   />
                 )}

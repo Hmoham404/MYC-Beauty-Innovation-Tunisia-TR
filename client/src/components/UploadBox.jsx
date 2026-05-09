@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Upload, Globe, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import api from '../services/api';
 
 const UploadBox = ({ onProcessed }) => {
   const [file, setFile] = useState(null);
@@ -23,17 +24,14 @@ const UploadBox = ({ onProcessed }) => {
     setError(null);
     setStatus('Uploading file...');
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
       // 1. Upload
-      const uploadRes = await axios.post('http://localhost:5000/api/documents/upload', formData);
-      const fileId = uploadRes.data.file.id;
+      const uploadRes = await api.upload(file);
+      const fileId = uploadRes.file.id;
 
       setStatus('Translating content and rebuilding format...');
       // 2. Process
-      const processRes = await axios.post('http://localhost:5000/api/documents/process', {
+      const processRes = await axios.post('/api/documents/process', {
         fileId,
         mode: 'translate',
         targetLanguage: targetLang

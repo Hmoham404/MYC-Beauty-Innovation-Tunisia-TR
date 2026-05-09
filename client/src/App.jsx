@@ -8,9 +8,13 @@ function App() {
 
   const handleProcessed = (data) => {
     setProcessedData(data);
-    setTimeout(() => {
-      document.getElementById('preview')?.scrollIntoView({ behavior: 'smooth' });
+    const timer = setTimeout(() => {
+      const element = document.getElementById('preview');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
     }, 100);
+    return () => clearTimeout(timer);
   };
 
   const handleReset = () => {

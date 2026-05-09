@@ -11,10 +11,17 @@ const Header = ({ isWorkspace, onBack }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    if (onBack) {
+      onBack();
+    }
+  };
+
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'py-4 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100' : 'py-6 bg-transparent'} text-brand-black`}>
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-        <a href="#" onClick={(e) => { e.preventDefault(); if (onBack) onBack(); }} className="flex items-center gap-3 group">
+        <button onClick={handleLogoClick} className="flex items-center gap-3 group bg-transparent border-0 cursor-pointer">
           <img 
             src="/MYC LOGO BLALK.png" 
             alt="MYC Logo" 
@@ -23,7 +30,7 @@ const Header = ({ isWorkspace, onBack }) => {
           <span className="font-bold text-xl tracking-tighter hidden sm:block">
             MYC <span className="text-brand-red italic font-black">BEAUTY INNOVATION</span> TUNISIA
           </span>
-        </a>
+        </button>
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8">

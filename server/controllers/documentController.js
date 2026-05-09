@@ -76,9 +76,9 @@ class DocumentController {
                 success: true,
                 originalFile: fileId,
                 translatedFile: translatedFilename,
-                viewUrl: viewUrl ? `http://localhost:5000${viewUrl}` : null,
-                downloadUrl: `http://localhost:5000${downloadUrl}`,
-                rawUrl: `http://localhost:5000${rawUrl}`,
+                viewUrl: viewUrl,
+                downloadUrl: downloadUrl,
+                rawUrl: rawUrl,
                 layoutPreserved: true,
                 previewAvailable,
                 message: "Document translated with 100% layout preservation via surgical reconstruction."
