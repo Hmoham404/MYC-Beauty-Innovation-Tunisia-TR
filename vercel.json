@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "node build.js",
+  "buildCommand": "cd client && npm install && npm run build && cd .. && cd server && npm install && cd ..",
+  "installCommand": "npm install --legacy-peer-deps",
   "env": {
     "NODE_ENV": "production"
   },
@@ -9,8 +10,7 @@
       "src": "server/server.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": "client/dist/**",
-        "excludeFiles": "client/node_modules/**"
+        "zeroConfig": true
       }
     }
   ],

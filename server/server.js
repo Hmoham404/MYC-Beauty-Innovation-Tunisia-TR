@@ -20,6 +20,12 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Log startup info
+console.log('\n========== MYC Document Platform ==========');
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`Current directory: ${__dirname}`);
+console.log(`Working directory: ${process.cwd()}`);
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'MYC Innovation Document API is running' });
@@ -28,54 +34,59 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/documents', documentRoutes);
 
-// Serve static files from client/dist
-const distPath = path.resolve(__dirname, '..', 'client', 'dist');
-console.log(`\n📁 Static files path: ${distPath}`);
-console.log(`   Path exists: ${fs.existsSync(distPath)}`);
+// Try to find and serve static files
+let distPath = path.resolve(__dirname, '..', 'client', 'dist');
+console.log(`\nLooking for static files at: ${distPath}`);
+
+// If not found, try alternative path
+if (!fs.existsSync(distPath)) {
+  distPath = path.resolve(__dirname, '..', '..', 'client', 'dist');
+  console.log(`Not found, trying alternative: ${distPath}`);
+}
+
+// If still not found, try current directory
+if (!fs.existsSync(distPath)) {
+  distPath = path.resolve(process.cwd(), 'client', 'dist');
+  console.log(`Not found, trying cwd: ${distPath}`);
+}
 
 if (fs.existsSync(distPath)) {
-  // List files in dist
+  console.log(`✅ Static files found!`);
   try {
     const files = fs.readdirSync(distPath);
-    console.log(`   Files in dist: ${files.slice(0, 5).join(', ')}${files.length > 5 ? '...' : ''}`);
-    console.log(`   Total files: ${files.length}`);
+    console.log(`   Files: ${files.slice(0, 5).join(', ')}${files.length > 5 ? '...' : ''}`);
   } catch (e) {
-    console.log(`   Error reading dist: ${e.message}`);
+    console.log(`   Error listing files: ${e.message}`);
   }
   
   app.use(express.static(distPath, {
     maxAge: '1d',
     etag: false
   }));
-  console.log('✅ Static file middleware configured\n');
+  console.log('✅ Static file middleware active\n');
 } else {
-  console.log('⚠️  WARNING: client/dist directory not found!\n');
+  console.log(`⚠️  WARNING: Static files directory not found`);
+  console.log(`   Tried: ${distPath}\n`);
 }
 
-// SPA fallback - serve index.html for all non-API routes
+// SPA fallback
 app.get('*', (req, res) => {
-  const indexPath = path.join(distPath, 'index.html');
-  
   if (!req.path.startsWith('/api')) {
+    const indexPath = path.join(distPath, 'index.html');
     if (fs.existsSync(indexPath)) {
       return res.sendFile(indexPath);
-    } else {
-      console.error(`❌ index.html not found at: ${indexPath}`);
-      return res.status(404).json({ error: 'index.html not found', path: indexPath });
     }
   }
-  
-  res.status(404).json({ error: 'API endpoint not found' });
+  res.status(404).json({ error: 'Not found' });
 });
 
-// Error handling middleware
+// Error handler
 app.use((err, req, res, next) => {
     console.error('❌ Error:', err.stack);
     res.status(500).json({ error: err.message || 'Internal Server Error' });
 });
 
 app.listen(PORT, () => {
-    console.log(`✅ Server is running on port ${PORT}`);
-    console.log(`   API: /api/documents`);
-    console.log(`   Frontend: http://localhost:${PORT}\n`);
+    console.log(`✅ Server listening on port ${PORT}`);
+    console.log(`========================================\n`);
 });
