@@ -1,6 +1,18 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api/documents';
+// Auto-detect API base URL - works for both localhost and production
+const API_BASE_URL = (() => {
+  if (typeof window !== 'undefined' && window.location) {
+    // In production (Vercel), use same domain
+    // In development (localhost), use localhost:5000
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api/documents';
+    }
+    // Production - use relative path (same server)
+    return '/api/documents';
+  }
+  return '/api/documents';
+})();
 
 const api = {
     upload: async (file) => {
