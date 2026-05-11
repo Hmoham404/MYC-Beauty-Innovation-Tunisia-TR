@@ -5,6 +5,11 @@
   "env": {
     "NODE_ENV": "production"
   },
+  "functions": {
+    "server/server.js": {
+      "includeFiles": "client/dist/**"
+    }
+  },
   "builds": [
     {
       "src": "server/server.js",
