@@ -1,16 +1,26 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm install --legacy-peer-deps && npm run build && cd ../server && npm install --legacy-peer-deps",
+  "buildCommand": "cd client && npm install --legacy-peer-deps && npm run build",
   "installCommand": "npm install --legacy-peer-deps",
   "env": {
     "NODE_ENV": "production"
   },
   "functions": {
     "server/server.js": {
-      "includeFiles": "client/dist/**"
+      "includeFiles": "client/dist/**",
+      "memory": 3008,
+      "maxDuration": 120
     }
   },
   "builds": [
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "buildCommand": "npm run build",
+        "outputDirectory": "dist"
+      }
+    },
     {
       "src": "server/server.js",
       "use": "@vercel/node",
@@ -21,8 +31,12 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/api(.*)",
       "dest": "server/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/client/dist/$1"
     }
   ]
 }

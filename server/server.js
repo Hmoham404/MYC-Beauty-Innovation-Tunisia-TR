@@ -20,8 +20,25 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 ensureDirectories();
 
+// Logging middleware
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  }
+  next();
+});
+
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'MYC Innovation Document API is running' });
+  const distPath = path.resolve(__dirname, '..', 'client', 'dist');
+  const distExists = fs.existsSync(distPath);
+  res.json({ 
+    status: 'ok', 
+    message: 'MYC Innovation Document API is running',
+    environment: process.env.NODE_ENV,
+    distPath,
+    distExists,
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.use('/api/documents', documentRoutes);
@@ -29,16 +46,30 @@ app.use('/api/documents', documentRoutes);
 const distCandidates = [
   path.resolve(__dirname, '..', 'client', 'dist'),
   path.resolve(__dirname, '..', '..', 'client', 'dist'),
-  path.resolve(process.cwd(), 'client', 'dist')
+  path.resolve(process.cwd(), 'client', 'dist'),
+  path.resolve('/var/task/client/dist') // Vercel Lambda path
 ];
 
-const distPath = distCandidates.find(candidate => fs.existsSync(candidate));
+let distPath = null;
+for (const candidate of distCandidates) {
+  if (fs.existsSync(candidate)) {
+    distPath = candidate;
+    console.log(`✅ Found dist at: ${distPath}`);
+    break;
+  }
+}
+
+if (!distPath) {
+  console.warn('⚠️  No dist directory found. Static files will not be served.');
+  console.log('Checked paths:', distCandidates);
+}
 
 if (distPath) {
   app.use(express.static(distPath, {
     maxAge: '1d',
     etag: false
   }));
+  console.log(`📁 Serving static files from: ${distPath}`);
 }
 
 app.get('*', (req, res) => {
@@ -53,9 +84,13 @@ app.get('*', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error('Server error:', err.stack || err.message);
+  console.error(`[ERROR] ${err.stack || err.message}`);
   const isUploadError = err.code === 'LIMIT_FILE_SIZE' || /Invalid file type/i.test(err.message || '');
-  res.status(isUploadError ? 400 : 500).json({ error: err.message || 'Internal Server Error' });
+  res.status(isUploadError ? 400 : 500).json({ 
+    error: err.message || 'Internal Server Error',
+    type: err.code || 'UNKNOWN',
+    timestamp: new Date().toISOString()
+  });
 });
 
 if (!process.env.VERCEL) {

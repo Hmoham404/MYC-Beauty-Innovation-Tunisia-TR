@@ -1,15 +1,24 @@
 #!/bin/bash
 set -e
 
-echo "Building client..."
+echo "🔨 Building MYC Document Platform for Vercel..."
+
+echo "📦 Building client..."
 cd client
-npm install
+npm install --legacy-peer-deps
 npm run build
 cd ..
 
-echo "Installing server dependencies..."
+if [ ! -d "client/dist" ]; then
+  echo "❌ ERROR: Client build failed - dist directory not found!"
+  exit 1
+fi
+
+echo "✅ Client built successfully"
+
+echo "📦 Installing server dependencies..."
 cd server
-npm install
+npm install --legacy-peer-deps
 cd ..
 
-echo "Build complete!"
+echo "🎉 Build complete!"
