@@ -1,4 +1,5 @@
-const AdmZip = require('adm-zip');
+const fs = require('fs');
+const JSZip = require('jszip');
 const ExcelJS = require('exceljs');
 const translationService = require('./translationService');
 
@@ -27,8 +28,10 @@ class RebuildService {
 
     async rebuildDocx(inputPath, outputPath, targetLanguage) {
         console.log(`Rebuilding DOCX: ${inputPath}`);
-        const zip = new AdmZip(inputPath);
-        const zipEntries = zip.getEntries();
+        const zip = await this.loadZip(inputPath, 'DOCX');
+        const zipEntries = Object.keys(zip.files)
+            .filter(name => !zip.files[name].dir)
+            .map(name => ({ entryName: name, file: zip.files[name] }));
         
         // 1. Collect and Unescape texts
         const textMap = new Map(); // original escaped -> unescaped
@@ -39,7 +42,7 @@ class RebuildService {
         );
 
         for (const entry of xmlFiles) {
-            const content = entry.getData().toString('utf8');
+            const content = await entry.file.async('string');
             const matches = content.match(/<w:t[^>]*>(.*?)<\/w:t>/g);
             if (matches) {
                 matches.forEach(m => {
@@ -57,7 +60,7 @@ class RebuildService {
 
             // 2. Apply translations
             for (const entry of xmlFiles) {
-                let content = entry.getData().toString('utf8');
+                const content = await entry.file.async('string');
                 const newContent = content.replace(/(<w:t[^>]*>)(.*?)(<\/w:t>)/g, (match, open, escapedText, close) => {
                     const unescaped = textMap.get(escapedText);
                     const translated = translatedMap[unescaped];
@@ -66,11 +69,12 @@ class RebuildService {
                     }
                     return match;
                 });
-                zip.updateFile(entry.entryName, Buffer.from(newContent, 'utf8'));
+                zip.file(entry.entryName, newContent);
             }
         }
         
-        zip.writeZip(outputPath);
+        const outputBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+        fs.writeFileSync(outputPath, outputBuffer);
         return outputPath;
     }
 
@@ -118,8 +122,10 @@ class RebuildService {
 
     async rebuildPptx(inputPath, outputPath, targetLanguage) {
         console.log(`Rebuilding PPTX: ${inputPath}`);
-        const zip = new AdmZip(inputPath);
-        const zipEntries = zip.getEntries();
+        const zip = await this.loadZip(inputPath, 'PPTX');
+        const zipEntries = Object.keys(zip.files)
+            .filter(name => !zip.files[name].dir)
+            .map(name => ({ entryName: name, file: zip.files[name] }));
         
         const textMap = new Map();
         const slideFiles = zipEntries.filter(e => 
@@ -127,7 +133,7 @@ class RebuildService {
         );
 
         for (const entry of slideFiles) {
-            const content = entry.getData().toString('utf8');
+            const content = await entry.file.async('string');
             const matches = content.match(/<a:t[^>]*>(.*?)<\/a:t>/g);
             if (matches) {
                 matches.forEach(m => {
@@ -143,7 +149,7 @@ class RebuildService {
             const translatedMap = await translationService.translateBatch([...textMap.values()], targetLanguage);
 
             for (const entry of slideFiles) {
-                let content = entry.getData().toString('utf8');
+                const content = await entry.file.async('string');
                 const newContent = content.replace(/(<a:t[^>]*>)(.*?)(<\/a:t>)/g, (match, open, escapedText, close) => {
                     const unescaped = textMap.get(escapedText);
                     const translated = translatedMap[unescaped];
@@ -152,12 +158,22 @@ class RebuildService {
                     }
                     return match;
                 });
-                zip.updateFile(entry.entryName, Buffer.from(newContent, 'utf8'));
+                zip.file(entry.entryName, newContent);
             }
         }
         
-        zip.writeZip(outputPath);
+        const outputBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+        fs.writeFileSync(outputPath, outputBuffer);
         return outputPath;
+    }
+
+    async loadZip(inputPath, label) {
+        try {
+            const fileBuffer = fs.readFileSync(inputPath);
+            return await JSZip.loadAsync(fileBuffer);
+        } catch (error) {
+            throw new Error(`${label} file cannot be opened. Please upload a valid, non-protected ${label} file exported from Microsoft Office or LibreOffice.`);
+        }
     }
 }
 

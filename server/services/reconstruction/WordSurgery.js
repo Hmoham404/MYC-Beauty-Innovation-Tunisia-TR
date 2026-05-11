@@ -1,4 +1,5 @@
-const AdmZip = require('adm-zip');
+const fs = require('fs');
+const JSZip = require('jszip');
 const xml2js = require('xml2js');
 const translationService = require('../translationService');
 
@@ -10,8 +11,10 @@ class WordSurgery {
 
     async process(inputPath, outputPath, targetLanguage) {
         console.log(`[WordSurgery] Processing: ${inputPath}`);
-        const zip = new AdmZip(inputPath);
-        const zipEntries = zip.getEntries();
+        const zip = await this.loadZip(inputPath, 'DOCX');
+        const zipEntries = Object.keys(zip.files)
+            .filter(name => !zip.files[name].dir)
+            .map(name => ({ entryName: name, file: zip.files[name] }));
         
         const targetEntries = zipEntries.filter(entry => 
             entry.entryName === 'word/document.xml' || 
@@ -24,7 +27,7 @@ class WordSurgery {
         const parsedEntries = [];
 
         for (const entry of targetEntries) {
-            let xmlContent = entry.getData().toString('utf8');
+            const xmlContent = await entry.file.async('string');
             const json = await this.parser.parseStringPromise(xmlContent);
             parsedEntries.push({ entry, json });
             this.collectTexts(json, textsToTranslate);
@@ -37,11 +40,24 @@ class WordSurgery {
         for (const { entry, json } of parsedEntries) {
             this.applyTranslations(json, translationMap);
             const rebuiltXml = this.builder.buildObject(json);
-            zip.updateFile(entry.entryName, Buffer.from(rebuiltXml, 'utf8'));
+            zip.file(entry.entryName, rebuiltXml);
         }
 
-        zip.writeZip(outputPath);
+        const outputBuffer = await zip.generateAsync({
+            type: 'nodebuffer',
+            compression: 'DEFLATE'
+        });
+        fs.writeFileSync(outputPath, outputBuffer);
         return outputPath;
+    }
+
+    async loadZip(inputPath, label) {
+        try {
+            const fileBuffer = fs.readFileSync(inputPath);
+            return await JSZip.loadAsync(fileBuffer);
+        } catch (error) {
+            throw new Error(`${label} file cannot be opened. Please upload a valid, non-protected ${label} file exported from Microsoft Office or LibreOffice.`);
+        }
     }
 
     collectTexts(node, textsSet) {
