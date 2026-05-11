@@ -1,13 +1,12 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { FileSearch, Zap, Shield, Globe2, Layout, Layers } from 'lucide-react';
+import { Zap, Globe2, Layout } from 'lucide-react';
 
 const Features = () => {
   const capabilities = [
     {
       icon: <Layout className="w-6 h-6" />,
       title: "Format Integrity",
-      desc: "We rebuild your DOCX, XLSX and PPTX files from the XML level to ensure perfect style preservation."
+      desc: "We rebuild DOCX, XLSX and PPTX files from the document structure so styles and layout stay close to the original."
     },
     {
       icon: <Globe2 className="w-6 h-6" />,

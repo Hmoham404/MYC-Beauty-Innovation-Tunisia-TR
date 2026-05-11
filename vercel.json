@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm install && npm run build && cd .. && cd server && npm install && cd ..",
+  "buildCommand": "cd client && npm install --legacy-peer-deps && npm run build && cd ../server && npm install --legacy-peer-deps",
   "installCommand": "npm install --legacy-peer-deps",
   "env": {
     "NODE_ENV": "production"

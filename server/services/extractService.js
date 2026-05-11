@@ -1,7 +1,7 @@
 const fs = require('fs');
 const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 
 class ExtractService {
     async extractText(filePath, mimeType) {
@@ -28,16 +28,25 @@ class ExtractService {
     }
 
     async extractExcel(filePath) {
-        const workbook = xlsx.readFile(filePath);
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.readFile(filePath);
         let content = '';
-        workbook.SheetNames.forEach(sheetName => {
-            const worksheet = workbook.Sheets[sheetName];
-            // Use CSV format for better cell separation in raw text
-            const data = xlsx.utils.sheet_to_csv(worksheet, { FS: ' | ' }); 
-            if (data.trim()) {
-                content += `--- SHEET: ${sheetName.toUpperCase()} ---\n${data}\n\n`;
+
+        workbook.eachSheet(sheet => {
+            const rows = [];
+            sheet.eachRow(row => {
+                const values = [];
+                row.eachCell({ includeEmpty: true }, cell => {
+                    values.push(cell.text || '');
+                });
+                rows.push(values.join(' | '));
+            });
+
+            if (rows.length > 0) {
+                content += `--- SHEET: ${sheet.name.toUpperCase()} ---\n${rows.join('\n')}\n\n`;
             }
         });
+
         return content || 'Empty Excel file';
     }
 }

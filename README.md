@@ -1,72 +1,63 @@
-# MYC INNOVATION - Smart Document Platform
+# MYC Document Platform
 
-A full-stack professional platform for converting and translating documents (PDF, Word, Excel) into polished PDFs.
+Full-stack document translation platform for PDF, DOCX, XLSX and PPTX files.
 
-## 🚀 Technologies
+## Stack
 
-- **Frontend**: React.js, Tailwind CSS, Framer Motion, Lucide React, flag-icons, Axios.
-- **Backend**: Node.js, Express.js, Multer, PDFKit, Mammoth.js, XLSX, PDF-Parse.
+- Frontend: React, Vite, Tailwind CSS, Framer Motion, Lucide React.
+- Backend: Node.js, Express, Multer, PDF tools, Office XML reconstruction.
+- Translation: Google public translation endpoint through the server service.
 
-## 📦 Features
+## Features
 
-- **Multi-format Support**: Upload `.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`.
-- **AI Translation**: Translate content into French, English, Arabic, Chinese, or Italian.
-- **Professional PDF Generation**: Branded output with MYC INNOVATION styling.
-- **Responsive Design**: Modern SaaS interface optimized for all devices.
+- Upload PDF, DOCX, XLSX and PPTX files.
+- Translate to French, English, Arabic, Italian or Chinese.
+- Rebuild the original file format after translation.
+- Preview PDF files directly; preview DOCX/XLSX in-browser; preview PPTX as PDF when LibreOffice is available.
+- Download the translated document in the same format.
 
-## 🛠️ Installation
+## Local Development
 
-### Prerequisites
-- Node.js (v16+)
-- npm or yarn
+Install dependencies:
 
-### 1. Server Setup
 ```bash
-cd server
 npm install
-cp .env.example .env
-```
-Edit `.env` and add your `API_KEY` for translations.
-
-### 2. Client Setup
-```bash
-cd client
-npm install
+cd server && npm install
+cd ../client && npm install
 ```
 
-## 🏃 Running the Application
+Run backend:
 
-### Start Backend
 ```bash
 cd server
 npm run dev
 ```
-The server will run on [http://localhost:5000](http://localhost:5000).
 
-### Start Frontend
+Run frontend:
+
 ```bash
 cd client
 npm run dev
 ```
-The application will be available on [http://localhost:5173](http://localhost:5173).
 
-## 📁 Project Structure
+Frontend: http://localhost:5173  
+Backend: http://localhost:5000
 
-- `client/`: React application (Vite).
-- `server/`: Express API.
-  - `services/`: Extraction, Translation, and PDF generation logic.
-  - `uploads/`: Temporary storage for original files.
-  - `outputs/`: Storage for generated PDFs.
+## Vercel Deployment
 
-## 📝 API Endpoints
+Import the `myc-document-platform` folder into Vercel. The included `vercel.json` builds the React client and serves the Express backend.
 
-- `POST /api/documents/upload`: Upload a document.
-- `POST /api/documents/process`: Process (convert/translate) a document.
-- `GET /api/documents/download/:filename`: Download generated PDF.
-- `GET /api/documents/view/:filename`: View generated PDF in browser.
+Important notes:
 
----
-© 2024 MYC INNOVATION
-"# MYC-Beauty-Innovation-Tunisia-TR" 
-"# MYC-Beauty-Innovation-Tunisia-TR" 
-"# MYC-Beauty-Innovation-Tunisia-TR" 
+- Vercel serverless storage is temporary. Generated documents are kept in `/tmp` during runtime.
+- Office-to-PDF preview needs LibreOffice. On standard Vercel, LibreOffice may not be available, so DOCX/XLSX/PPTX downloads can work while PDF previews may be unavailable.
+- For production-grade file persistence, connect external storage such as S3, Cloudflare R2, Supabase Storage, or Vercel Blob.
+
+## API
+
+- `POST /api/documents/process-upload`: upload and translate in one request.
+- `POST /api/documents/upload`: legacy upload endpoint.
+- `POST /api/documents/process`: legacy process endpoint.
+- `GET /api/documents/download/:filename`: download translated file.
+- `GET /api/documents/view/:filename`: preview generated PDF.
+- `GET /api/documents/raw/:filename`: get raw translated file.

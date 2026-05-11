@@ -1,9 +1,8 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowRight, Factory, Cpu, ShieldCheck, Globe2, 
   Settings, Users, Zap, Award, Microscope, MonitorSmartphone,
-  ArrowUpRight, MapPin
+  ArrowUpRight
 } from 'lucide-react';
 
 const fadeIn = {

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Upload, Settings, Download } from 'lucide-react';
 
 const Step = ({ number, icon: Icon, title, description }) => (

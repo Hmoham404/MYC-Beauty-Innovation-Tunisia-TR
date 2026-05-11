@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import CorporateLanding from './components/CorporateLanding';
 import TranslationWorkspace from './components/TranslationWorkspace';
 

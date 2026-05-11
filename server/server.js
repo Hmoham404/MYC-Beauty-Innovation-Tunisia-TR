@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const documentRoutes = require('./routes/documentRoutes');
+const { ensureDirectories } = require('./services/fileStore');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,6 +20,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+ensureDirectories();
 
 // Log startup info
 console.log('\n========== MYC Document Platform ==========');
@@ -83,7 +85,8 @@ app.get('*', (req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
     console.error('❌ Error:', err.stack);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
+    const isUploadError = err.code === 'LIMIT_FILE_SIZE' || /Invalid file type/i.test(err.message || '');
+    res.status(isUploadError ? 400 : 500).json({ error: err.message || 'Internal Server Error' });
 });
 
 app.listen(PORT, () => {

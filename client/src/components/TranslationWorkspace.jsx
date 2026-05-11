@@ -1,4 +1,3 @@
-import React from 'react';
 import Header from './Header';
 import UploadBox from './UploadBox';
 import PreviewPanel from './PreviewPanel';

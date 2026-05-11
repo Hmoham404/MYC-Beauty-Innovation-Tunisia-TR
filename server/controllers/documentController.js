@@ -3,8 +3,23 @@ const fs = require('fs');
 const wordSurgery = require('../services/reconstruction/WordSurgery');
 const excelSurgery = require('../services/reconstruction/ExcelSurgery');
 const pdfSurgery = require('../services/reconstruction/PdfSurgery');
+const rebuildService = require('../services/rebuildService');
+const { uploadDir, outputDir, ensureDirectories, safeJoin } = require('../services/fileStore');
+
+const SUPPORTED_EXTENSIONS = new Set(['.pdf', '.docx', '.xlsx', '.pptx']);
+const SUPPORTED_LANGUAGES = new Set(['fr', 'ar', 'en', 'it', 'zh']);
 
 class DocumentController {
+    constructor() {
+        this.upload = this.upload.bind(this);
+        this.processUploaded = this.processUploaded.bind(this);
+        this.process = this.process.bind(this);
+        this.download = this.download.bind(this);
+        this.view = this.view.bind(this);
+        this.raw = this.raw.bind(this);
+        this.processFile = this.processFile.bind(this);
+    }
+
     async upload(req, res) {
         try {
             if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -21,80 +36,112 @@ class DocumentController {
         }
     }
 
+    async processUploaded(req, res) {
+        try {
+            if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+            const { targetLanguage = 'fr' } = req.body;
+            const result = await this.processFile(req.file.filename, targetLanguage);
+            res.json({
+                success: true,
+                originalFile: req.file.filename,
+                ...result
+            });
+        } catch (error) {
+            console.error('[Controller] Processing error:', error);
+            res.status(500).json({
+                error: 'Document processing failed.',
+                details: error.message
+            });
+        }
+    }
+
     async process(req, res) {
         const { fileId, mode, targetLanguage } = req.body;
         if (!fileId || !mode) return res.status(400).json({ error: 'Missing parameters' });
 
-        const inputPath = path.join(__dirname, '../uploads', fileId);
-        const outputDir = path.join(__dirname, '../outputs');
-        const ext = path.extname(fileId).toLowerCase();
-        
-        const timestamp = Date.now();
-        const translatedFilename = `translated_${timestamp}${ext}`;
-        const translatedPath = path.join(outputDir, translatedFilename);
-
         try {
-            if (!fs.existsSync(inputPath)) return res.status(404).json({ error: 'File not found' });
-
-            console.log(`[Controller] Starting surgical reconstruction for ${ext}...`);
-
-            let finalDocPath;
-            if (ext === '.docx') {
-                finalDocPath = await wordSurgery.process(inputPath, translatedPath, targetLanguage);
-            } else if (ext === '.xlsx') {
-                finalDocPath = await excelSurgery.process(inputPath, translatedPath, targetLanguage);
-            } else if (ext === '.pdf') {
-                finalDocPath = await pdfSurgery.process(inputPath, translatedPath, targetLanguage);
-            } else {
-                // Fallback for other formats (simple copy)
-                fs.copyFileSync(inputPath, translatedPath);
-                finalDocPath = translatedPath;
-            }
-
-            // Generate URLs
-            const downloadUrl = `/api/documents/download/${translatedFilename}`;
-            const rawUrl = `/api/documents/raw/${translatedFilename}`;
-            
-            // For preview, we still show a PDF in the iframe
-            let previewPdfFilename = translatedFilename;
-            let previewAvailable = true;
-            if (ext !== '.pdf') {
-                try {
-                    const pdfPreviewPath = path.join(outputDir, `preview_${timestamp}.pdf`);
-                    const pdfSurgery = require('../services/reconstruction/PdfSurgery');
-                    await pdfSurgery.docxToPdf(finalDocPath, pdfPreviewPath);
-                    previewPdfFilename = path.basename(pdfPreviewPath);
-                } catch (previewError) {
-                    console.warn('[Controller] Preview generation failed (usually due to missing LibreOffice):', previewError.message);
-                    previewAvailable = false;
-                }
-            }
-
-            const viewUrl = previewAvailable ? `/api/documents/view/${previewPdfFilename}` : null;
-
+            const result = await this.processFile(fileId, targetLanguage);
             res.json({
                 success: true,
                 originalFile: fileId,
-                translatedFile: translatedFilename,
-                viewUrl: viewUrl,
-                downloadUrl: downloadUrl,
-                rawUrl: rawUrl,
-                layoutPreserved: true,
-                previewAvailable,
-                message: "Document translated with 100% layout preservation via surgical reconstruction."
+                ...result
             });
 
         } catch (error) {
             console.error('[Controller] Processing error:', error);
             res.status(500).json({ 
-                error: 'Layout reconstruction failed.',
+                error: 'Document processing failed.',
                 details: error.message 
             });
         }
     }
 
+    async processFile(fileId, targetLanguage = 'fr') {
+        ensureDirectories();
+
+        if (!SUPPORTED_LANGUAGES.has(targetLanguage)) {
+            throw new Error('Unsupported target language.');
+        }
+
+        const inputPath = safeJoin(uploadDir, fileId);
+        if (!fs.existsSync(inputPath)) throw new Error('File not found.');
+
+        const ext = path.extname(fileId).toLowerCase();
+        if (!SUPPORTED_EXTENSIONS.has(ext)) {
+            throw new Error('Unsupported file type. Please upload PDF, DOCX, XLSX or PPTX.');
+        }
+
+        const timestamp = Date.now();
+        const translatedFilename = `translated_${timestamp}${ext}`;
+        const translatedPath = path.join(outputDir, translatedFilename);
+
+        console.log(`[Controller] Processing ${ext} document...`);
+
+        let finalDocPath;
+        if (ext === '.docx') {
+            finalDocPath = await wordSurgery.process(inputPath, translatedPath, targetLanguage);
+        } else if (ext === '.xlsx') {
+            finalDocPath = await excelSurgery.process(inputPath, translatedPath, targetLanguage);
+        } else if (ext === '.pptx') {
+            finalDocPath = await rebuildService.rebuildPptx(inputPath, translatedPath, targetLanguage);
+        } else {
+            finalDocPath = await pdfSurgery.process(inputPath, translatedPath, targetLanguage);
+        }
+
+        const downloadUrl = `/api/documents/download/${translatedFilename}`;
+        const rawUrl = `/api/documents/raw/${translatedFilename}`;
+
+        let previewPdfFilename = translatedFilename;
+        let previewAvailable = ext === '.pdf';
+        if (ext !== '.pdf') {
+            try {
+                const pdfPreviewPath = path.join(outputDir, `preview_${timestamp}.pdf`);
+                await pdfSurgery.convertToPdf(finalDocPath, pdfPreviewPath);
+                previewPdfFilename = path.basename(pdfPreviewPath);
+                previewAvailable = true;
+            } catch (previewError) {
+                console.warn('[Controller] Preview generation skipped:', previewError.message);
+            }
+        }
+
+        return {
+            translatedFile: translatedFilename,
+            viewUrl: previewAvailable ? `/api/documents/view/${previewPdfFilename}` : null,
+            downloadUrl,
+            rawUrl,
+            layoutPreserved: true,
+            previewAvailable,
+            message: 'Document translated and rebuilt while preserving the original structure as closely as possible.'
+        };
+    }
+
     async download(req, res) {
-        const filePath = path.join(__dirname, '../outputs', req.params.filename);
+        let filePath;
+        try {
+            filePath = safeJoin(outputDir, req.params.filename);
+        } catch (error) {
+            return res.status(400).json({ error: 'Invalid filename' });
+        }
         if (fs.existsSync(filePath)) {
             res.download(filePath);
         } else {
@@ -103,7 +150,12 @@ class DocumentController {
     }
 
     async view(req, res) {
-        const filePath = path.join(__dirname, '../outputs', req.params.filename);
+        let filePath;
+        try {
+            filePath = safeJoin(outputDir, req.params.filename);
+        } catch (error) {
+            return res.status(400).json({ error: 'Invalid filename' });
+        }
         if (fs.existsSync(filePath)) {
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader("Content-Disposition", "inline");
@@ -114,7 +166,12 @@ class DocumentController {
     }
 
     async raw(req, res) {
-        const filePath = path.join(__dirname, '../outputs', req.params.filename);
+        let filePath;
+        try {
+            filePath = safeJoin(outputDir, req.params.filename);
+        } catch (error) {
+            return res.status(400).json({ error: 'Invalid filename' });
+        }
         if (fs.existsSync(filePath)) {
             res.sendFile(filePath);
         } else {

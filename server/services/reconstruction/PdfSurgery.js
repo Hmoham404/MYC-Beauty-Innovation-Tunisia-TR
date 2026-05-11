@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const wordSurgery = require('./WordSurgery');
 const libre = require('libreoffice-convert');
 const util = require('util');
@@ -58,7 +58,7 @@ class PdfSurgery {
 
                     // Embed a Unicode-compatible font (Arial) to support Arabic, etc.
                     let font;
-                    const fontPath = 'C:\\Windows\\Fonts\\arial.ttf';
+                    const fontPath = process.env.PDF_FONT_PATH || 'C:\\Windows\\Fonts\\arial.ttf';
                     try {
                         if (fs.existsSync(fontPath)) {
                             const fontBytes = fs.readFileSync(fontPath);
@@ -142,18 +142,19 @@ class PdfSurgery {
     async pdfToDocx(inputPath, outputPath) {
         return new Promise((resolve, reject) => {
             const sofficePaths = [
-                '"C:\\Program Files\\LibreOffice\\program\\soffice.exe"',
-                '"C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe"',
+                process.env.LIBREOFFICE_PATH,
+                'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+                'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
                 'soffice'
-            ];
+            ].filter(Boolean);
 
             const trySoffice = (index) => {
                 if (index >= sofficePaths.length) return reject(new Error('LibreOffice not found.'));
                 
                 const outputDir = path.dirname(outputPath);
-                const cmd = `${sofficePaths[index]} --headless --infilter="PDF (export)" --convert-to docx --outdir "${outputDir}" "${inputPath}"`;
+                const args = ['--headless', '--infilter=PDF (export)', '--convert-to', 'docx', '--outdir', outputDir, inputPath];
                 
-                exec(cmd, (error) => {
+                execFile(sofficePaths[index], args, (error) => {
                     if (error) return trySoffice(index + 1);
                     this.renameConvertedFile(inputPath, outputDir, '.docx', outputPath, resolve);
                 });
@@ -164,13 +165,17 @@ class PdfSurgery {
     }
 
     async docxToPdf(inputPath, outputPath) {
+        return this.convertToPdf(inputPath, outputPath);
+    }
+
+    async convertToPdf(inputPath, outputPath) {
         try {
             const docxBuffer = fs.readFileSync(inputPath);
             const pdfBuffer = await convertAsync(docxBuffer, '.pdf', undefined);
             fs.writeFileSync(outputPath, pdfBuffer);
         } catch (err) {
             // If conversion fails, it might be due to LibreOffice missing
-            throw new Error('LibreOffice failed to convert DOCX to PDF.');
+            throw new Error('LibreOffice failed to convert this document to PDF.');
         }
     }
 

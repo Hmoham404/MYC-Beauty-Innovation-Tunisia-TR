@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Zap, ShieldCheck, Globe2 } from 'lucide-react';
 
@@ -31,7 +30,7 @@ const Hero = () => {
           </h1>
 
           <p className="text-xl text-gray-500 max-w-xl leading-relaxed font-medium">
-            The only platform that translates your files while perfectly preserving original styles, tables, and complex layouts.
+            Translate business documents while keeping their original structure, tables, and styles as close as possible.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-5 justify-center lg:justify-start">

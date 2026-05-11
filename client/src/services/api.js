@@ -29,6 +29,17 @@ const api = {
         return response.data;
     },
 
+    processUpload: async (file, targetLanguage) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('targetLanguage', targetLanguage);
+        const response = await axios.post(`${API_BASE_URL}/process-upload`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 120000
+        });
+        return response.data;
+    },
+
     getDownloadUrl: (filename) => `${API_BASE_URL}/download/${filename}`,
     getViewUrl: (filename) => `${API_BASE_URL}/view/${filename}`
 };
